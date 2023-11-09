@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-deployment-test
+  namespace: test
+  labels:
+    app: node
+    tier: test
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: node
+      tier: test
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        tier: test
+        app: node
+    spec:
+      containers:
+      - name: node
+        image: myuser/express
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "250m"
+        envFrom:
+        - configMapRef:
+           name: app-config
+        ports:
+        - containerPort: 8080
+          name: node-deploy-test
+        volumeMounts:
+          - name: node-test-pv
+            mountPath: /var/lib/node
+      volumes:
+        - name: node-test-pv
+          persistentVolumeClaim:
+            claimName: node-test-claim
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mongodb
+            topologyKey: kubernetes.io/hostname

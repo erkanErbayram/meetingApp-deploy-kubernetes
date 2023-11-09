@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-deployment-prod
+  namespace: production
+  labels:
+    app: node
+    tier: production
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: node
+      tier: production
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        tier: production
+        app: node
+    spec:
+      containers:
+      - name: node
+        image: myuser/express
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "250m"
+        envFrom:
+        - configMapRef:
+           name: app-config
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: node-prod-pv
+            mountPath: /var/lib/node
+      volumes:
+        - name: node-prod-pv
+          persistentVolumeClaim:
+            claimName: node-prod-claim
+      nodeSelector:
+        tier: production
+      tolerations:
+       - key: "tier"
+         operator: "Equal"
+         value: "production"
+         effect: "NoSchedule"
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mongodb
+            topologyKey: kubernetes.io/hostname

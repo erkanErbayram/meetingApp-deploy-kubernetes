@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deploy-prod
+  namespace: production
+  labels:
+    tier: production
+    app: mongodb
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: mongodb
+      tier: production
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        tier: production
+    spec:
+      containers:
+      - name: mongodb
+        image: myuser/mongodb
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "250m"
+        envFrom:
+        - secretRef:
+            name: mongo-secret
+        ports:
+        - containerPort: 27017
+          name: mongodb-prod-port
+        volumeMounts:
+          - name: mongodb-prod-pv
+            mountPath: /data/db
+      nodeSelector:
+        tier: production
+      tolerations:
+       - key: "tier"
+         operator: "Equal"
+         value: "production"
+         effect: "NoSchedule"
+      volumes:
+      - name: mongodb-prod-pv
+        persistentVolumeClaim:
+          claimName: mongodb-prod-claim
+      

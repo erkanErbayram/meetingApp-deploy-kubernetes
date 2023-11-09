@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deploy-test
+  namespace: test
+  labels:
+    tier: test
+    app: mongodb
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: mongodb
+      tier: test
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: myapp
+        tier: test
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "250m"
+        envFrom:
+        - secretRef:
+            name: mongo-secret
+        ports:
+        - containerPort: 27017
+          name: mongodb-deploy-test
+        volumeMounts:
+          - name: mongodb-test-pv
+            mountPath: /data/db
+      volumes:
+        - name: mongodb-test-pv
+          persistentVolumeClaim:
+            claimName: mongodb-test-claim
